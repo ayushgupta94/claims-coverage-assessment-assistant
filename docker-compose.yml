@@ -1,0 +1,33 @@
+# Optional: for local development WITHOUT Docker (e.g. if Docker isn't
+# available on your machine), skip this entirely and instead point
+# MONGO_URI in .env at a MongoDB Atlas free-tier cluster, then just run:
+#   pip install -r requirements.txt && uvicorn app.main:app --reload
+#
+# This compose file is here to prove the service is container-ready (it's
+# what backs the "Deployed in a Docker container" resume line) and gives a
+# one-command way to run it with a local database when Docker IS available.
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB_NAME: claims_assistant
+      LLM_PROVIDER: stub
+      EMBEDDING_PROVIDER: tfidf
+      LOG_LEVEL: INFO
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:

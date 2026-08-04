@@ -1,0 +1,89 @@
+[
+  {
+    "product_version_id": "AUTO-GOLD-V1",
+    "product_id": "AUTO-GOLD",
+    "policy_type": "auto",
+    "excluded_claim_types": ["racing", "commercial_use"],
+    "waiting_period_days": 15,
+    "clauses": [
+      {
+        "clause_id": "AUTO-1001-C1",
+        "title": "Collision Coverage",
+        "text": "This policy covers repair or replacement costs arising from collision with another vehicle or object, provided the insured vehicle was not being used for racing or commercial purposes at the time of the incident."
+      },
+      {
+        "clause_id": "AUTO-1001-C2",
+        "title": "Theft Coverage",
+        "text": "Loss of the insured vehicle due to theft is covered up to the sum insured, provided a police report (FIR) is filed within 48 hours of discovering the theft and the vehicle was not left unlocked or with keys accessible."
+      },
+      {
+        "clause_id": "AUTO-1001-C3",
+        "title": "Natural Calamity Damage",
+        "text": "Damage caused by flood, storm, hail, or earthquake is covered under this policy, subject to a documented weather or seismic event report from a recognized authority."
+      },
+      {
+        "clause_id": "AUTO-1001-C4",
+        "title": "Exclusions - Racing and Commercial Use",
+        "text": "This policy does not cover any loss or damage occurring while the vehicle is being used for racing, speed testing, or any commercial/ride-hailing purpose not declared at the time of policy issuance."
+      },
+      {
+        "clause_id": "AUTO-1001-C5",
+        "title": "Waiting Period",
+        "text": "Claims arising from incidents occurring within 15 days of the policy inception date are not covered, except for claims arising directly from a collision with another insured vehicle."
+      }
+    ]
+  },
+  {
+    "product_version_id": "HEALTH-PREMIUM-V1",
+    "product_id": "HEALTH-PREMIUM",
+    "policy_type": "health",
+    "excluded_claim_types": ["cosmetic_procedure"],
+    "waiting_period_days": 90,
+    "clauses": [
+      {
+        "clause_id": "HEALTH-2001-C1",
+        "title": "Hospitalization Coverage",
+        "text": "In-patient hospitalization expenses, including room rent, ICU charges, and surgeon fees, are covered up to the sum insured for any illness or injury requiring admission of more than 24 hours."
+      },
+      {
+        "clause_id": "HEALTH-2001-C2",
+        "title": "Pre-existing Conditions Waiting Period",
+        "text": "Claims related to pre-existing conditions disclosed at the time of application are covered only after a waiting period of 90 days from the policy inception date."
+      },
+      {
+        "clause_id": "HEALTH-2001-C3",
+        "title": "Exclusions - Cosmetic Procedures",
+        "text": "This policy does not cover any cosmetic or aesthetic procedure that is not medically necessary to treat an illness or injury, including elective cosmetic surgery."
+      },
+      {
+        "clause_id": "HEALTH-2001-C4",
+        "title": "Emergency Room Coverage",
+        "text": "Emergency room visits resulting in observation or admission are covered without requiring pre-authorization, provided the claim is filed within 30 days of the visit."
+      }
+    ]
+  },
+  {
+    "product_version_id": "HOME-STANDARD-V1",
+    "product_id": "HOME-STANDARD",
+    "policy_type": "home",
+    "excluded_claim_types": ["war", "nuclear"],
+    "waiting_period_days": 0,
+    "clauses": [
+      {
+        "clause_id": "HOME-3001-C1",
+        "title": "Fire and Water Damage",
+        "text": "Structural and contents damage caused by fire, smoke, or accidental water leakage from plumbing systems is covered up to the sum insured."
+      },
+      {
+        "clause_id": "HOME-3001-C2",
+        "title": "Burglary Coverage",
+        "text": "Loss of insured contents due to burglary or forced entry is covered, provided a police report is filed within 24 hours and evidence of forced entry is documented."
+      },
+      {
+        "clause_id": "HOME-3001-C3",
+        "title": "Exclusions - War and Nuclear Risk",
+        "text": "This policy excludes any loss or damage directly or indirectly caused by war, invasion, act of foreign enemy, or nuclear risk of any kind."
+      }
+    ]
+  }
+]

@@ -1,0 +1,72 @@
+name: Test and Deploy
+
+# Two jobs: `test` runs on every push/PR (no Azure credentials needed --
+# uses mongomock, no real DB or OpenAI call). `deploy` only runs on pushes
+# to main, after `test` passes, and builds + pushes the Docker image, then
+# deploys it to an existing Azure Container App.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: PYTHONPATH=src pytest tests/ -v
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push image
+        run: |
+          IMAGE="${{ secrets.ACR_LOGIN_SERVER }}/claims-assistant:${{ github.sha }}"
+          docker build -f docker/Dockerfile -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy new image to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          acrName: ${{ secrets.ACR_NAME }}
+          containerAppName: ${{ secrets.CONTAINER_APP_NAME }}
+          resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: ${{ env.IMAGE }}
+
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   ACR_LOGIN_SERVER, ACR_USERNAME, ACR_PASSWORD   -- Azure Container Registry
+#   ACR_NAME                                        -- registry name only (no domain)
+#   AZURE_CREDENTIALS                               -- service principal JSON (az ad sp create-for-rbac --sdk-auth)
+#   CONTAINER_APP_NAME, AZURE_RESOURCE_GROUP        -- the target Container App
+#
+# App runtime config (MONGO_URI, OPENAI_API_KEY, etc.) is set as environment
+# variables / secrets on the Container App itself in the Azure Portal or via
+# `az containerapp update --set-env-vars`, not in this workflow -- keeps
+# secrets out of CI logs and out of the repo entirely.
