@@ -9,7 +9,7 @@ registers the claims + health routes. Run locally with:
 or in Docker via the CMD in docker/Dockerfile -- same command either way.
 """
 from __future__ import annotations
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -74,7 +74,7 @@ def create_app(settings: Settings | None = None, mongo_database=None) -> FastAPI
 
     @app.get("/", include_in_schema=False)
     def root():
-        return RedirectResponse(url="/docs")
+        return FileResponse("app/static/index.html")
 
     app.include_router(health.router)
     app.include_router(claims.router)

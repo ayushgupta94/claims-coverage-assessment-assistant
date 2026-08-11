@@ -168,7 +168,8 @@ approved / rejected   (based on coverage_outcome)
 ```bash
 # 1. Database -- MongoDB Atlas free tier (mongodb.com/atlas), or local mongod
 cp .env.example .env
-# edit .env: MONGO_URI, OPENAI_API_KEY (required -- no offline mode)
+# edit .env: MONGO_URI, OPENAI_API_KEY (required -- no offline mode),
+# APP_API_KEY (a random key you generate, e.g. `openssl rand -hex 16`)
 
 # 2. Install
 python3 -m venv .venv && source .venv/bin/activate
@@ -216,7 +217,7 @@ the seeded 2024-dated history correctly.
 
 **Test 1 — Clean claim: fully covered, low risk**
 ```bash
-curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -d '{
+curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -H "X-API-Key: $APP_API_KEY" -d '{
   "claim_id": "TEST-1", "policy_id": "POL-AUTO-1001", "customer_id": "CUST-001",
   "claim_type": "collision", "description": "Rear-ended at a traffic light",
   "amount": 45000, "incident_date": "2024-06-01T00:00:00Z", "filed_at": "2024-06-02T00:00:00Z"
@@ -226,7 +227,7 @@ Expected: `coverage_outcome: "covered"`, `fraud_risk.risk_level: "low"`, `requir
 
 **Test 2 — Excluded claim type → rejected**
 ```bash
-curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -d '{
+curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -H "X-API-Key: $APP_API_KEY" -d '{
   "claim_id": "TEST-2", "policy_id": "POL-AUTO-1001", "customer_id": "CUST-001",
   "claim_type": "racing", "description": "Damage during a street race",
   "amount": 30000, "incident_date": "2024-06-01T00:00:00Z", "filed_at": "2024-06-02T00:00:00Z"
@@ -236,7 +237,7 @@ Expected: `coverage_outcome: "not_covered"`, `requires_human_review: true`.
 
 **Test 3 — Waiting period violation**
 ```bash
-curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -d '{
+curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -H "X-API-Key: $APP_API_KEY" -d '{
   "claim_id": "TEST-3", "policy_id": "POL-AUTO-1001", "customer_id": "CUST-001",
   "claim_type": "collision", "description": "Collision shortly after buying the policy",
   "amount": 10000, "incident_date": "2024-01-20T00:00:00Z", "filed_at": "2024-01-21T00:00:00Z"
@@ -246,7 +247,7 @@ Expected: `coverage_outcome: "not_covered"` (day 5 of a 15-day waiting period), 
 
 **Test 4 — Amount exceeds sum insured**
 ```bash
-curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -d '{
+curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -H "X-API-Key: $APP_API_KEY" -d '{
   "claim_id": "TEST-4", "policy_id": "POL-AUTO-1001", "customer_id": "CUST-001",
   "claim_type": "collision", "description": "Major collision, vehicle totaled",
   "amount": 900000, "incident_date": "2024-06-01T00:00:00Z", "filed_at": "2024-06-02T00:00:00Z"
@@ -256,17 +257,13 @@ Expected: `coverage_outcome: "not_covered"` (900,000 > sum insured 800,000), `fr
 
 **Test 5 — Covered by rules, but HIGH fraud risk (best one to demo live)**
 ```bash
-curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -d '{
-  "claim_id": "TEST-5", "policy_id": "POL-AUTO-1001", "customer_id": "CUST-001",
-  "claim_type": "theft", "description": "Vehicle stolen from parking lot",
-  "amount": 600000, "incident_date": "2024-02-01T00:00:00Z", "filed_at": "2024-02-02T00:00:00Z"
-}'
+curl -X POST "https://claims-assistant-app.wonderfuldesert-4bb884ca.centralindia.azurecontainerapps.io/claims/assess" -H "Content-Type: application/json" -H "X-API-Key: $APP_API_KEY" -d "{\"claim_id\":\"TEST-5\",\"policy_id\":\"POL-AUTO-1001\",\"customer_id\":\"CUST-001\",\"claim_type\":\"theft\",\"description\":\"Vehicle stolen from parking lot\",\"amount\":600000,\"incident_date\":\"2024-02-01T00:00:00Z\",\"filed_at\":\"2024-02-02T00:00:00Z\"}"
 ```
 Expected: `coverage_outcome: "covered"` but `fraud_risk.risk_level: "high"` (high-amount + early-claim signals both fire), `requires_human_review: true`. Shows coverage and fraud risk are independent axes.
 
 **Test 6 — Health policy, different waiting period**
 ```bash
-curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -d '{
+curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -H "X-API-Key: $APP_API_KEY" -d '{
   "claim_id": "TEST-6", "policy_id": "POL-HEALTH-2001", "customer_id": "CUST-002",
   "claim_type": "hospitalization", "description": "Emergency admission for surgery",
   "amount": 50000, "incident_date": "2023-07-01T00:00:00Z", "filed_at": "2023-07-02T00:00:00Z"
@@ -276,7 +273,7 @@ Expected: `coverage_outcome: "not_covered"` (day 30 of a 90-day waiting period).
 
 **Test 7 — Unknown policy → 404**
 ```bash
-curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -d '{
+curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -H "X-API-Key: $APP_API_KEY" -d '{
   "claim_id": "TEST-7", "policy_id": "POL-DOES-NOT-EXIST", "customer_id": "CUST-999",
   "claim_type": "collision", "description": "Test", "amount": 1000,
   "incident_date": "2024-06-01T00:00:00Z", "filed_at": "2024-06-02T00:00:00Z"
@@ -286,15 +283,25 @@ Expected: HTTP `404`, `{"error_code": "policy_not_found", ...}`.
 
 **Test 8 — Invalid payload → 422**
 ```bash
-curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -d '{"claim_id": "X"}'
+curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -H "X-API-Key: $APP_API_KEY" -d '{"claim_id": "X"}'
 ```
 Expected: HTTP `422`.
 
-**Test 9 — Health check**
+**Test 9 — Missing or invalid API key → 401**
+```bash
+curl -X POST http://localhost:8000/claims/assess -H "Content-Type: application/json" -d '{
+  "claim_id": "TEST-AUTH", "policy_id": "POL-AUTO-1001", "customer_id": "CUST-001",
+  "claim_type": "collision", "description": "Auth test", "amount": 1000,
+  "incident_date": "2024-06-01T00:00:00Z", "filed_at": "2024-06-02T00:00:00Z"
+}'
+```
+Expected: HTTP `401`, `{"error_code": "unauthorized", ...}`.
+
+**Test 10 — Health check**
 ```bash
 curl http://localhost:8000/health
 ```
-Expected: `{"status": "ok", "mongo_connected": true}`.
+Expected: `{"status": "ok", "mongo_connected": true}`. No API key required.
 
 ---
 
@@ -302,6 +309,7 @@ Expected: `{"status": "ok", "mongo_connected": true}`.
 
 | Variable | Default | Purpose |
 |---|---|---|
+| `APP_API_KEY` | — | Required to call `/claims/*`; a random key you generate (e.g. `openssl rand -hex 16`), sent by clients in `X-API-Key`. Unset = every request rejected |
 | `MONGO_URI` | `mongodb://localhost:27017` | Atlas / local / Cosmos DB vCore connection string |
 | `MONGO_DB_NAME` | `claims_assistant` | Database name |
 | `OPENAI_API_KEY` | — | Required always (RAG embeddings; also default LLM provider) |

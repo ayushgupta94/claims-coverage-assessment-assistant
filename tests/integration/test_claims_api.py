@@ -24,9 +24,10 @@ from mongomock_motor import AsyncMongoMockClient
 
 from app.agent.llm_client import LLMResponse, ToolCall
 from app.agent.orchestrator import ClaimAssessmentOrchestrator, ToolExecutor
-from app.api.deps import get_claim_assessment_service
+from app.api.deps import get_app_settings, get_claim_assessment_service
 from app.api.routes import claims
-from app.config import get_settings
+from app.api.security import verify_api_key
+from app.config import Settings, get_settings
 from app.core.exceptions import register_exception_handlers
 from app.db.repositories.claim_repository import ClaimRepository
 from app.db.repositories.policy_repository import PolicyRepository
@@ -165,6 +166,9 @@ def client(running_mcp_server, mcp_server_port):
     app = FastAPI()
     app.include_router(claims.router)
     app.dependency_overrides[get_claim_assessment_service] = _override_service
+    # Auth is covered separately in tests/unit/test_api_security.py -- this
+    # test is about the real MCP wiring, so skip the X-API-Key check here.
+    app.dependency_overrides[verify_api_key] = lambda: None
     register_exception_handlers(app)
 
     return TestClient(app)
@@ -211,3 +215,18 @@ def test_assess_claim_for_unknown_policy_returns_404(client):
 def test_assess_claim_rejects_invalid_payload(client):
     response = client.post("/claims/assess", json={"claim_id": "X"})
     assert response.status_code == 422
+
+
+def test_assess_claim_without_api_key_returns_401():
+    app = FastAPI()
+    app.include_router(claims.router)
+    app.dependency_overrides[get_app_settings] = lambda: Settings(
+        mongo_uri="mongodb://localhost:27017", openai_api_key="unused", app_api_key="configured-key"
+    )
+    register_exception_handlers(app)
+    client = TestClient(app)
+
+    response = client.post("/claims/assess", json={"claim_id": "CLAIM-102"})
+
+    assert response.status_code == 401
+    assert response.json()["error_code"] == "unauthorized"
