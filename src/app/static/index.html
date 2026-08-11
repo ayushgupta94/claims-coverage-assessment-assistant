@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claims Coverage Assessment Assistant</title>
+<style>
+  :root {
+    --navy: #1f4e79;
+    --navy-dark: #163a5c;
+    --accent: #2e75b6;
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --green: #15803d;
+    --green-bg: #ecfdf5;
+    --red: #b91c1c;
+    --red-bg: #fef2f2;
+    --amber: #b45309;
+    --amber-bg: #fffbeb;
+    --code-bg: #0f172a;
+    --code-text: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+  }
+  header {
+    background: linear-gradient(135deg, var(--navy), var(--navy-dark));
+    color: white;
+    padding: 40px 24px 32px;
+  }
+  header .inner { max-width: 1100px; margin: 0 auto; }
+  header h1 { margin: 0 0 8px; font-size: 28px; }
+  header p.tag { margin: 0 0 18px; color: #cfe0f0; font-size: 15px; max-width: 780px; }
+  .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 80px; }
+  section { margin-bottom: 40px; }
+  h2 {
+    font-size: 19px;
+    color: var(--navy);
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .feature-list { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+  @media (max-width: 700px) { .feature-list { grid-template-columns: 1fr; } }
+  .feature-list li { padding-left: 22px; position: relative; font-size: 14.5px; }
+  .feature-list li::before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: bold; }
+
+  .arch-diagram {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: 8px;
+    padding: 18px;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 12.5px;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .apikey-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    background: var(--amber-bg);
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .apikey-bar input[type=text], .apikey-bar input[type=password] {
+    flex: 1;
+    min-width: 220px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13.5px;
+  }
+  .apikey-bar label { font-size: 13.5px; color: var(--amber); font-weight: 600; white-space: nowrap; }
+  .base-url-note { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+
+  .test-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .test-card.negative { border-left-color: var(--red); }
+  .test-card .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .test-card h3 { margin: 0 0 4px; font-size: 15.5px; }
+  .test-card .desc { margin: 0 0 10px; font-size: 13.5px; color: var(--muted); }
+  .expect-pill {
+    display: inline-block;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    margin-right: 6px;
+    margin-bottom: 8px;
+  }
+  .pill-covered { background: var(--green-bg); color: var(--green); }
+  .pill-not-covered { background: var(--red-bg); color: var(--red); }
+  .pill-review { background: var(--amber-bg); color: var(--amber); }
+  .pill-error { background: var(--red-bg); color: var(--red); }
+
+  pre.curl {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 12px;
+    overflow-x: auto;
+    margin: 0 0 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .btn-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  button.run-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.run-btn:hover { background: var(--navy); }
+  button.copy-btn {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .status-chip {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+  }
+  .status-2xx { background: var(--green-bg); color: var(--green); }
+  .status-4xx { background: var(--red-bg); color: var(--red); }
+  .status-pending { background: #f1f5f9; color: var(--muted); }
+
+  .response-box {
+    margin-top: 10px;
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 12px;
+    max-height: 260px;
+    overflow: auto;
+    white-space: pre-wrap;
+    display: none;
+  }
+
+  footer { text-align: center; padding: 24px; color: var(--muted); font-size: 12.5px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <h1>Claims Coverage Assessment Assistant</h1>
+    <p class="tag">
+      An AI assistant that reviews an insurance claim against policy documents and returns a
+      structured coverage decision — coverage outcome, supporting policy clauses, a confidence
+      score, a fraud risk assessment, and a flag for cases needing human review. Built as a
+      tool-calling LLM agent backed by RAG and four tools exposed over MCP, running on a single
+      FastAPI service.
+    </p>
+    <div class="badges">
+      <span class="badge">FastAPI</span>
+      <span class="badge">OpenAI / Azure OpenAI</span>
+      <span class="badge">RAG (embeddings + cosine similarity)</span>
+      <span class="badge">MCP (Model Context Protocol)</span>
+      <span class="badge">MongoDB / Cosmos DB vCore</span>
+      <span class="badge">Single container</span>
+      <span class="badge"><a href="/docs" style="color:#cfe0f0;">API Docs →</a></span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section>
+    <h2>Architecture Overview</h2>
+    <div class="grid-2">
+      <div class="card">
+        <div class="arch-diagram">POST /claims/assess
+     │
+     ▼
+Agent Orchestrator (LLM tool-calling loop)
+     │  real MCP client, loopback HTTP only
+     ▼
+MCP server, mounted at /mcp (external access blocked)
+     │
+     ├─ retrieve_policy_clauses   (RAG)
+     ├─ lookup_claim_history      (excludes current claim)
+     ├─ check_coverage_rules      (deterministic, no LLM)
+     └─ score_fraud_risk          (deterministic, no LLM)
+     │
+     ▼
+MongoDB (product_versions / issued_policies / claims)</div>
+      </div>
+      <div class="card">
+        <p style="margin-top:0; font-size:14px;">Key design choices:</p>
+        <ul class="feature-list" style="grid-template-columns: 1fr;">
+          <li>One process, one container — MCP is mounted in-app, not a separate service</li>
+          <li>Agent is a genuine MCP client, not a direct function-call shortcut</li>
+          <li>Coverage rules and fraud scoring are deterministic code — never an LLM decision</li>
+          <li>Product catalog (rules/wording) kept separate from each customer's issued policy</li>
+          <li>Claim history is a query over the same <code>claims</code> collection, not a separate store</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Features</h2>
+    <div class="card">
+      <ul class="feature-list">
+        <li>Tool-calling AI agent (OpenAI / Azure OpenAI function-calling)</li>
+        <li>RAG retrieval over policy clauses (OpenAI embeddings + cosine similarity)</li>
+        <li>Model Context Protocol (MCP) server exposing 4 reusable tools</li>
+        <li>MCP endpoint restricted to loopback — not reachable externally</li>
+        <li>Deterministic, auditable coverage rule engine</li>
+        <li>Transparent, weighted fraud risk heuristic (signals fully explained)</li>
+        <li>Fraud result always sourced from the tool output, never LLM retelling</li>
+        <li>Graceful fallback decision assembly if the LLM's output is malformed</li>
+        <li>Product-version / issued-policy schema (no duplicated rules per customer)</li>
+        <li>Claim lifecycle tracking: submitted → under_review → approved / rejected</li>
+        <li>API key protected write endpoint (<code>X-API-Key</code>)</li>
+        <li>Structured JSON logging, typed exceptions, input validation</li>
+        <li>25+ automated tests — unit, integration, and a real MCP protocol round trip</li>
+        <li>Single Docker image — deployable to Azure Container Apps via GitHub Actions</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Try It — API Key</h2>
+    <div class="apikey-bar">
+      <label for="apiKeyInput">X-API-Key</label>
+      <input type="password" id="apiKeyInput" placeholder="Enter your DEMO_API_KEY to run tests below" />
+      <button class="copy-btn" onclick="toggleKeyVisibility()">Show</button>
+    </div>
+    <p class="base-url-note">
+      Requests below are sent from your browser to this same server (<code id="baseUrlLabel"></code>).
+      The key is only kept in this page's memory — nothing is stored or sent anywhere else.
+      <code>/health</code> requires no key; <code>/claims/assess</code> does.
+    </p>
+  </section>
+
+  <section>
+    <h2>System Health Check</h2>
+    <div class="test-card" id="card-health">
+      <div class="row">
+        <div>
+          <h3>GET /health</h3>
+          <p class="desc">No API key required. Confirms the app is up and the database is reachable.</p>
+        </div>
+        <span class="status-chip status-pending" id="status-health">not run</span>
+      </div>
+      <pre class="curl" id="curl-health">curl BASE_URL/health</pre>
+      <div class="btn-row">
+        <button class="run-btn" onclick="runTest('health')">Run</button>
+        <button class="copy-btn" onclick="copyCurl('health')">Copy curl</button>
+      </div>
+      <pre class="response-box" id="resp-health"></pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Positive Flow — Valid Claim Submissions</h2>
+    <p style="color:var(--muted); font-size:13.5px; margin-top:-8px;">
+      All six requests below are valid, successfully processed (HTTP 200) claim submissions —
+      the business outcome varies (covered, not covered, flagged for review) based on real
+      coverage rules and fraud signals, not request validity.
+    </p>
+    <div id="positive-tests"></div>
+  </section>
+
+  <section>
+    <h2>Negative Flow — Errors &amp; Edge Cases</h2>
+    <p style="color:var(--muted); font-size:13.5px; margin-top:-8px;">
+      Requests that are rejected before or instead of a coverage decision — wrong/missing auth,
+      unknown resources, and invalid input.
+    </p>
+    <div id="negative-tests"></div>
+  </section>
+
+</main>
+
+<footer>
+  Claims Coverage Assessment Assistant — internal test console. See <a href="/docs">/docs</a> for the full OpenAPI schema.
+</footer>
+
+<script>
+const BASE_URL = window.location.origin;
+document.getElementById('baseUrlLabel').textContent = BASE_URL;
+
+function toggleKeyVisibility() {
+  const input = document.getElementById('apiKeyInput');
+  const btn = event.target;
+  if (input.type === 'password') { input.type = 'text'; btn.textContent = 'Hide'; }
+  else { input.type = 'password'; btn.textContent = 'Show'; }
+}
+
+function getApiKey() {
+  return document.getElementById('apiKeyInput').value.trim();
+}
+
+const POSITIVE_TESTS = [
+  {
+    id: 'pos1', title: 'Test 1 — Clean claim: fully covered, low risk',
+    pills: [['pill-covered','covered'], ['pill-not-covered','risk: low']],
+    body: { claim_id: "TEST-1", policy_id: "POL-AUTO-1001", customer_id: "CUST-001",
+      claim_type: "collision", description: "Rear-ended at a traffic light",
+      amount: 45000, incident_date: "2024-06-01T00:00:00Z", filed_at: "2024-06-02T00:00:00Z" },
+    expect: 'coverage_outcome: "covered", fraud_risk.risk_level: "low", requires_human_review: false'
+  },
+  {
+    id: 'pos2', title: 'Test 2 — Excluded claim type → not covered',
+    pills: [['pill-not-covered','not covered'], ['pill-review','review required']],
+    body: { claim_id: "TEST-2", policy_id: "POL-AUTO-1001", customer_id: "CUST-001",
+      claim_type: "racing", description: "Damage during a street race",
+      amount: 30000, incident_date: "2024-06-01T00:00:00Z", filed_at: "2024-06-02T00:00:00Z" },
+    expect: 'coverage_outcome: "not_covered", requires_human_review: true'
+  },
+  {
+    id: 'pos3', title: 'Test 3 — Waiting period violation',
+    pills: [['pill-not-covered','not covered'], ['pill-review','risk: medium']],
+    body: { claim_id: "TEST-3", policy_id: "POL-AUTO-1001", customer_id: "CUST-001",
+      claim_type: "collision", description: "Collision shortly after buying the policy",
+      amount: 10000, incident_date: "2024-01-20T00:00:00Z", filed_at: "2024-01-21T00:00:00Z" },
+    expect: 'coverage_outcome: "not_covered" (day 5 of a 15-day waiting period), fraud_risk.risk_level: "medium"'
+  },
+  {
+    id: 'pos4', title: 'Test 4 — Amount exceeds sum insured',
+    pills: [['pill-not-covered','not covered'], ['pill-review','risk: medium']],
+    body: { claim_id: "TEST-4", policy_id: "POL-AUTO-1001", customer_id: "CUST-001",
+      claim_type: "collision", description: "Major collision, vehicle totaled",
+      amount: 900000, incident_date: "2024-06-01T00:00:00Z", filed_at: "2024-06-02T00:00:00Z" },
+    expect: 'coverage_outcome: "not_covered" (900,000 > sum insured 800,000), fraud_risk.risk_level: "medium"'
+  },
+  {
+    id: 'pos5', title: 'Test 5 — Covered by rules, but HIGH fraud risk',
+    pills: [['pill-covered','covered'], ['pill-review','risk: HIGH']],
+    body: { claim_id: "TEST-5", policy_id: "POL-AUTO-1001", customer_id: "CUST-001",
+      claim_type: "theft", description: "Vehicle stolen from parking lot",
+      amount: 600000, incident_date: "2024-02-01T00:00:00Z", filed_at: "2024-02-02T00:00:00Z" },
+    expect: 'coverage_outcome: "covered" but fraud_risk.risk_level: "high", requires_human_review: true — coverage and fraud are independent axes'
+  },
+  {
+    id: 'pos6', title: 'Test 6 — Health policy, different waiting period',
+    pills: [['pill-not-covered','not covered']],
+    body: { claim_id: "TEST-6", policy_id: "POL-HEALTH-2001", customer_id: "CUST-002",
+      claim_type: "hospitalization", description: "Emergency admission for surgery",
+      amount: 50000, incident_date: "2023-07-01T00:00:00Z", filed_at: "2023-07-02T00:00:00Z" },
+    expect: 'coverage_outcome: "not_covered" (day 30 of a 90-day waiting period)'
+  }
+];
+
+const NEGATIVE_TESTS = [
+  {
+    id: 'neg1', title: 'Missing / wrong API key → 401', method: 'no-key',
+    body: { claim_id: "TEST-AUTH", policy_id: "POL-AUTO-1001", customer_id: "CUST-001",
+      claim_type: "collision", description: "Auth test", amount: 1000,
+      incident_date: "2024-06-01T00:00:00Z", filed_at: "2024-06-02T00:00:00Z" },
+    expect: 'HTTP 401 — this request is deliberately sent WITHOUT the X-API-Key header, regardless of what you entered above'
+  },
+  {
+    id: 'neg2', title: 'Unknown policy → 404',
+    body: { claim_id: "TEST-7", policy_id: "POL-DOES-NOT-EXIST", customer_id: "CUST-999",
+      claim_type: "collision", description: "Test", amount: 1000,
+      incident_date: "2024-06-01T00:00:00Z", filed_at: "2024-06-02T00:00:00Z" },
+    expect: 'HTTP 404 — {"error_code": "policy_not_found", ...}'
+  },
+  {
+    id: 'neg3', title: 'Invalid payload → 422',
+    body: { claim_id: "X" },
+    expect: 'HTTP 422 — missing required fields'
+  },
+  {
+    id: 'neg4', title: '/mcp blocked from outside the container → 403', method: 'mcp',
+    body: null,
+    expect: 'HTTP 403 — MCP is only reachable via loopback (127.0.0.1) from inside the container, never externally'
+  }
+];
+
+function curlFor(test, section) {
+  if (test.method === 'mcp') {
+    return `curl ${BASE_URL}/mcp/`;
+  }
+  if (test.method === 'no-key') {
+    return `curl -X POST ${BASE_URL}/claims/assess \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(test.body)}'`;
+  }
+  return `curl -X POST ${BASE_URL}/claims/assess \\\n  -H "Content-Type: application/json" \\\n  -H "X-API-Key: <your-key>" \\\n  -d '${JSON.stringify(test.body)}'`;
+}
+
+function renderTest(test, section) {
+  const cls = section === 'negative' ? 'test-card negative' : 'test-card';
+  const pillsHtml = (test.pills || []).map(p => `<span class="expect-pill ${p[0]}">${p[1]}</span>`).join('');
+  return `
+    <div class="${cls}">
+      <div class="row">
+        <div>
+          <h3>${test.title}</h3>
+          <div>${pillsHtml}</div>
+          <p class="desc">${test.expect}</p>
+        </div>
+        <span class="status-chip status-pending" id="status-${test.id}">not run</span>
+      </div>
+      <pre class="curl" id="curl-${test.id}">${curlFor(test, section)}</pre>
+      <div class="btn-row">
+        <button class="run-btn" onclick="runTest('${test.id}')">Run</button>
+        <button class="copy-btn" onclick="copyCurl('${test.id}')">Copy curl</button>
+      </div>
+      <pre class="response-box" id="resp-${test.id}"></pre>
+    </div>`;
+}
+
+document.getElementById('positive-tests').innerHTML = POSITIVE_TESTS.map(t => renderTest(t, 'positive')).join('');
+document.getElementById('negative-tests').innerHTML = NEGATIVE_TESTS.map(t => renderTest(t, 'negative')).join('');
+
+const ALL_TESTS = {};
+POSITIVE_TESTS.forEach(t => ALL_TESTS[t.id] = t);
+NEGATIVE_TESTS.forEach(t => ALL_TESTS[t.id] = t);
+
+function setStatus(statusEl, code) {
+  statusEl.textContent = code;
+  statusEl.className = 'status-chip ' + (code >= 200 && code < 300 ? 'status-2xx' : 'status-4xx');
+}
+
+async function runTest(id) {
+  const statusEl = document.getElementById('status-' + id);
+  const respEl = document.getElementById('resp-' + id);
+  statusEl.textContent = 'running…';
+  statusEl.className = 'status-chip status-pending';
+  respEl.style.display = 'block';
+  respEl.textContent = 'Loading...';
+
+  try {
+    let res, data;
+    if (id === 'health') {
+      res = await fetch(BASE_URL + '/health');
+    } else if (id === 'neg4') {
+      res = await fetch(BASE_URL + '/mcp/', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({jsonrpc:"2.0", id:1, method:"initialize", params:{}}) });
+    } else {
+      const test = ALL_TESTS[id];
+      const headers = { 'Content-Type': 'application/json' };
+      if (test.method !== 'no-key') {
+        headers['X-API-Key'] = getApiKey();
+      }
+      res = await fetch(BASE_URL + '/claims/assess', {
+        method: 'POST', headers, body: JSON.stringify(test.body)
+      });
+    }
+    setStatus(statusEl, res.status);
+    try { data = await res.json(); respEl.textContent = JSON.stringify(data, null, 2); }
+    catch (e) { respEl.textContent = await res.text(); }
+  } catch (err) {
+    statusEl.textContent = 'error';
+    statusEl.className = 'status-chip status-4xx';
+    respEl.textContent = 'Request failed: ' + err.message;
+  }
+}
+
+function copyCurl(id) {
+  const el = document.getElementById('curl-' + id);
+  const text = el.textContent.replace('<your-key>', getApiKey() || '<your-key>');
+  navigator.clipboard.writeText(text);
+  event.target.textContent = 'Copied!';
+  setTimeout(() => { event.target.textContent = 'Copy curl'; }, 1200);
+}
+
+document.getElementById('curl-health').textContent = 'curl ' + BASE_URL + '/health';
+</script>
+
+</body>
+</html>
